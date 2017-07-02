@@ -57,7 +57,7 @@ def hide_message(message, image):
             f.write(stego_image)
 
 
-def get_message(image):
+def retrieve_message(image):
 
     try:
         with open(image, "r") as f:
@@ -80,6 +80,7 @@ def get_message(image):
         length = ""
         for x in range(3):
             length += image_data[0][x][-1]
+        print(length)
 
         ascii_values = ""
         # Extract message
@@ -100,6 +101,46 @@ def get_message(image):
     return message
 
 
-hide_message("Hola me llamo tito. Esto es un mensaje secreto shhh", "casstillo.ppm")
-m = get_message("stego_castillo.ppm")
-print(m)
+def hide_image(secret, carrier):
+
+    with open(secret, "r") as a, open(carrier, "r") as b:
+        secret_data = []
+        for x in a.readlines()[1:]:
+            for y in x.split(" "):
+                if y != "\n":
+                    for z in y.zfill(3):
+                        if z != "\n":
+                            secret_data.append(z)
+
+        carrier_header = b.readlines()[0:3]
+        b.seek(0)
+        carrier_data = [y for x in b.readlines()[3:] for y in x.split(" ")]
+
+        print(carrier_header)
+
+    # Insert secret image into carrier image
+    x = 0
+    for y in range(len(carrier_data)):
+        while x < len(secret_data):
+            if carrier_data[y] != "\n":
+                carrier_data[y] = carrier_data[y][0:2] + secret_data[x]
+            x += 1
+            break
+
+    with open("stego_" + carrier, "w") as f:
+        f.write("".join(carrier_header) + " ".join(carrier_data))
+
+
+
+
+
+
+
+
+def retrieve_image():
+    None
+
+# hide_message("Hola me llamo tito. Esto es un mensaje secreto shhh", "casstillo.ppm")
+# m = retrieve_message("stego_castillo.ppm")
+# print(m)
+hide_image("castillo.ppm", "cotorra_boricua.ppm")
