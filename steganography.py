@@ -1,105 +1,105 @@
 
+def char_to_bin(string):
+    bin_string = [bin(ord(char))[2:].zfill(8) for char in string]
+    # Qty of bits for removal purposes
+    bin_string.insert(0, bin((len(bin_string) + 1) * 8)[2:].zfill(8))
 
-# TODO size restrictions - message can't be greater than image
+    # length of bits length number
+    length = len(bin((len(bin_string) + 1) * 8)[2:].zfill(8))
+    bin_string.insert(0, bin(length)[2:].zfill(8))
+    print(bin_string)
+    return bin_string
+
+
 def hide_message(message, image):
+    bin_msg = char_to_bin(message)
 
-    """Hide a string inside a ppm image.
-
-    :param message: string to be inserted into the image
-    :param image: ppm image
-    :return:
-    """
-
-    # Convert message to ascii
-    ascii_message = [x for x in str(len(message)).zfill(3)]
-    for x in message:
-        for y in str(ord(x)).zfill(3):
-            ascii_message.append(y)
+    # Number of bits to be inserted
+    bits = int(bin_msg[1], 2)
 
     try:
-        with open(image, "r") as f:
+        with open(image, 'r') as f:
             header = f.readlines()[0:3]
             f.seek(0)
-            data = f.readlines()[3:]
-
+            data = [y for x in f.readlines()[3:] for y in x.replace("\n", "").split(" ") if y != ""]
     except FileNotFoundError as e:
         print(e.strerror)
     else:
-        # Image data (no header information)
-        # Store each line of data in a 2d array for better access.
-        # Last value of each line is \n
-        image_data = [line.split(" ") for line in data]
 
-        # Insert message
-        z = 0
-        for x in range(len(image_data)):
-            for y in range(len(image_data[x])):
-                while z < len(ascii_message):
-                    if image_data[x][y] != "\n":
-                        image_data[x][y] = image_data[x][y][0:len(image_data[x][y]) - 1] + ascii_message[z]
-                        z += 1
-                    break
+        # ascii to bin
+        bin_data = [bin(int(x))[2:].zfill(8) for x in data]
 
-        # Add header information to image data
-        stego_image = ""
-        for elem in header:
-            stego_image += elem
+        print(len(bin_data), bits)
 
-        for x in range(len(image_data)):
-            for y in range(len(image_data[x])):
-                if image_data[x][y] == "\n":
-                    stego_image += image_data[x][y]
-                else:
-                    stego_image += image_data[x][y] + " "
+        if len(bin_data) < bits:
+            raise Exception("Message to big for carrier.")
 
-        # Create stego image
-        with open("stego_" + image, 'w') as f:
-            f.write(stego_image)
+        # Inserting Message with LSB technique
+        y = 0
+        for x in "".join(bin_msg):
+            while y < (len(bin_data)):
+                bin_data[y] = bin_data[y][0:len(bin_data[y])-1] + x
+                y += 1
+                break
+
+        # binary to ascii
+        for x in range(len(bin_data)):
+            data[x] = str(int(bin_data[x], 2)) + "\n"
+
+        with open("Stego_" + image, 'w') as f:
+            f.write(''.join(header) + ''.join(data))
 
 
 def retrieve_message(image):
 
     try:
-        with open(image, "r") as f:
+        with open(image, 'r') as f:
             header = f.readlines()[0:3]
             f.seek(0)
-            data = f.readlines()[3:]
-
+            data = [y for x in f.readlines()[3:] for y in x.replace("\n", "").split(" ") if y != ""]
     except FileNotFoundError as e:
-
         print(e.strerror)
-
     else:
 
-        # Image data (no header information)
-        # Store each line of data in a 2d array for better access.
-        # Last value of each line is \n
-        image_data = [line.split(" ") for line in data]
+        # ascii to binary
+        bin_data = [bin(int(x))[2:].zfill(8) for x in data]
 
-        # Get message length
-        length = ""
-        for x in range(3):
-            length += image_data[0][x][-1]
-        print(length)
+        # Retrieve length of ??Qty of bits??
+        bit_length = ""
+        for x in range(8):
+            bit_length += bin_data[x][-1]
 
-        ascii_values = ""
-        # Extract message
-        z = 0
-        for x in range(len(image_data)):
-            for y in range(len(image_data[x])):
-                while z < (int(length) * 3) + 3:
-                    if image_data[x][y] != "\n":
-                        ascii_values += image_data[x][y][-1]
-                        z += 1
-                    break
+        print(int(bit_length, 2))
 
-        # Convert from ascii to chr
+
+        message_length = ""
+        # Retrieve Message Length (Bits Qty)
+        for x in range(8, 8 + int(bit_length, 2)):
+            message_length += bin_data[x][-1]
+
+        print(int(message_length, 2))
+
+        bin_msg = []
+        # Retrieve Message
+        ctr = 0
+        acc = ""
+        x = int(bit_length, 2)
+        while x < int(message_length, 2):
+            if ctr < 8:
+                acc += bin_data[x][-1]
+                ctr += 1
+                x += 1
+            else:
+                bin_msg.append(acc)
+                acc = ""
+                ctr = 0
+        bin_msg.append(acc)
+
         message = ""
-        for x in range(3, len(ascii_values), 3):
-            message += chr(int(ascii_values[x:x + 3]))
+        for x in bin_msg:
+            message += chr(int(x, 2))
 
-    return message
-
+        return message
 
 def hide_image(secret, carrier):
 
@@ -119,11 +119,15 @@ def hide_image(secret, carrier):
         print(carrier_header)
 
     # Insert secret image into carrier image
+    if len(secret_data) > len(carrier_data):
+        print("grande")
+
+    print(len(secret_data), len(carrier_data))
     x = 0
     for y in range(len(carrier_data)):
         while x < len(secret_data):
             if carrier_data[y] != "\n":
-                carrier_data[y] = carrier_data[y][0:2] + secret_data[x]
+                carrier_data[y] = carrier_data[y][0:len(carrier_data[y]) - 1] + secret_data[x]
             x += 1
             break
 
@@ -140,7 +144,7 @@ def hide_image(secret, carrier):
 def retrieve_image():
     None
 
-# hide_message("Hola me llamo tito. Esto es un mensaje secreto shhh", "casstillo.ppm")
-# m = retrieve_message("stego_castillo.ppm")
-# print(m)
-hide_image("castillo.ppm", "cotorra_boricua.ppm")
+hide_message("H", "test.ppm")
+m = retrieve_message("test.ppm")
+print(m)
+# hide_image("castillo.ppm", "lancia_stratos.ppm")
