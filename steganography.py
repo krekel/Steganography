@@ -2,17 +2,19 @@
 def char_to_bin(string):
     bin_string = [bin(ord(char))[2:].zfill(8) for char in string]
     # Qty of bits for removal purposes
-    bin_string.insert(0, bin((len(bin_string) + 1) * 8)[2:].zfill(8))
+    bin_string.insert(0, bin((len(bin_string)) * 8)[2:].zfill(8))
+    print(bin_string[0])
 
     # length of bits length number
-    length = len(bin((len(bin_string) + 1) * 8)[2:].zfill(8))
+    fill = len(bin_string[0])
+    length = len(bin_string[0][2:].zfill(fill))
     bin_string.insert(0, bin(length)[2:].zfill(8))
-    print(bin_string)
     return bin_string
 
 
 def hide_message(message, image):
     bin_msg = char_to_bin(message)
+    print(bin_msg)
 
     # Number of bits to be inserted
     bits = int(bin_msg[1], 2)
@@ -83,8 +85,10 @@ def retrieve_message(image):
         # Retrieve Message
         ctr = 0
         acc = ""
-        x = int(bit_length, 2)
-        while x < int(message_length, 2):
+        x = 8 + int(bit_length, 2)
+        y = x + int(message_length, 2)
+        print(x, y)
+        while x < y:
             if ctr < 8:
                 acc += bin_data[x][-1]
                 ctr += 1
@@ -99,7 +103,9 @@ def retrieve_message(image):
         for x in bin_msg:
             message += chr(int(x, 2))
 
+
         return message
+
 
 def hide_image(secret, carrier):
 
@@ -136,15 +142,15 @@ def hide_image(secret, carrier):
 
 
 
-
-
-
-
-
 def retrieve_image():
     None
 
-hide_message("H", "test.ppm")
-m = retrieve_message("test.ppm")
+hide_message("Hola me llamo lastier de lasssllklllllllll pls lloiju jugjb juuh"
+             "falkjdlkajeiieiefjfoefeee"
+             "eeefefefwfqefqfqfqfqfq"
+             "qfqefqwefqwefqewfqe $%^ eioqeiuroroo\nkeieieieeiqoeij;adflkqjeflkj"
+             "ad;lfkja;lkdfj;lakjdf;lakjfa"
+             "alkdjl;fkjaldfkjd", "castillo.ppm")
+m = retrieve_message("stego_castillo.ppm")
 print(m)
 # hide_image("castillo.ppm", "lancia_stratos.ppm")
