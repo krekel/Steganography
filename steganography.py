@@ -1,6 +1,21 @@
+_magic_number = 'P3'
+
 
 def char_to_bin(string):
     bin_string = [bin(ord(char))[2:].zfill(8) for char in string]
+    # Qty of bits for removal purposes pos:1
+    bin_string.insert(0, bin((len(bin_string)) * 8)[2:].zfill(8))
+    print(bin_string[0])
+
+    # length of bits length number
+    fill = len(bin_string[0])
+    length = len(bin_string[0][2:].zfill(fill))
+    bin_string.insert(0, bin(length)[2:].zfill(8))
+    return bin_string
+
+
+def ascii_to_bin(string):
+    bin_string = [bin(int(elem))[2:].zfill(8) for elem in string]
     # Qty of bits for removal purposes
     bin_string.insert(0, bin((len(bin_string)) * 8)[2:].zfill(8))
     print(bin_string[0])
@@ -48,7 +63,7 @@ def hide_message(message, image):
         for x in range(len(bin_data)):
             data[x] = str(int(bin_data[x], 2)) + "\n"
 
-        with open("Stego_" + image, 'w') as f:
+        with open("stego_" + image, 'w') as f:
             f.write(''.join(header) + ''.join(data))
 
 
@@ -110,47 +125,43 @@ def retrieve_message(image):
 def hide_image(secret, carrier):
 
     with open(secret, "r") as a, open(carrier, "r") as b:
-        secret_data = []
-        for x in a.readlines()[1:]:
-            for y in x.split(" "):
-                if y != "\n":
-                    for z in y.zfill(3):
-                        if z != "\n":
-                            secret_data.append(z)
+        secret_data = [y for x in a.readlines()[1:] for y in x.replace("\n", "").split(" ") if y != ""]
 
         carrier_header = b.readlines()[0:3]
         b.seek(0)
-        carrier_data = [y for x in b.readlines()[3:] for y in x.split(" ")]
+        carrier_data = [y for x in b.readlines()[3:] for y in x.replace("\n", "").split(" ") if y != ""]
 
-        print(carrier_header)
+    bin_secret_data = ascii_to_bin(secret_data)
+    bin_carrrier_data = ascii_to_bin(carrier_data)
+
+    if int(bin_secret_data[1], 2) > int(bin_carrrier_data[1], 2):
+        raise Exception("Image is to big for carrier")
 
     # Insert secret image into carrier image
-    if len(secret_data) > len(carrier_data):
-        print("grande")
-
-    print(len(secret_data), len(carrier_data))
-    x = 0
-    for y in range(len(carrier_data)):
-        while x < len(secret_data):
-            if carrier_data[y] != "\n":
-                carrier_data[y] = carrier_data[y][0:len(carrier_data[y]) - 1] + secret_data[x]
-            x += 1
+    y = 0
+    for x in "".join(bin_secret_data):
+        while y < (len(bin_carrrier_data)):
+            bin_carrrier_data[y] = bin_carrrier_data[y][0:len(bin_carrrier_data[y]) - 1] + x
+            y += 1
             break
 
-    with open("stego_" + carrier, "w") as f:
-        f.write("".join(carrier_header) + " ".join(carrier_data))
+    # Convert carrier image back to ascii
+    for x in range(len(bin_carrrier_data)):
+        carrier_data[x] = str(int(bin_carrrier_data[x], 2)) + "\n"
 
+    with open("stego_" + carrier, "w") as f:
+        f.write("".join(carrier_header) + "".join(carrier_data))
 
 
 def retrieve_image():
     None
 
-hide_message("Hola me llamo lastier de lasssllklllllllll pls lloiju jugjb juuh"
-             "falkjdlkajeiieiefjfoefeee"
-             "eeefefefwfqefqfqfqfqfq"
-             "qfqefqwefqwefqewfqe $%^ eioqeiuroroo\nkeieieieeiqoeij;adflkqjeflkj"
-             "ad;lfkja;lkdfj;lakjdf;lakjfa"
-             "alkdjl;fkjaldfkjd", "castillo.ppm")
-m = retrieve_message("stego_castillo.ppm")
-print(m)
-# hide_image("castillo.ppm", "lancia_stratos.ppm")
+# hide_message("Hola me llamo lastier de lasssllklllllllll pls lloiju jugjb juuh"
+#              "falkjdlkajeiieiefjfoefeee"
+#              "eeefefefwfqefqfqfqfqfq"
+#              "qfqefqwefqwefqewfqe $%^ eioqeiuroroo\nkeieieieeiqoeij;adflkqjeflkj"
+#              "ad;lfkja;lkdfj;lakjdf;lakjfa"
+#              "alkdjl;fkjaldfkjd", "castillo.ppm")
+# m = retrieve_message("stego_castillo.ppm")
+# print(m)
+hide_image("castillo.ppm", "lancia_stratos.ppm")
