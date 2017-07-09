@@ -23,13 +23,13 @@ def ascii_to_bin(data):
 
     for elem in range(2, len(data)):
         bin_data.append(bin(int(data[elem]))[2:].zfill(8))
-    # # Qty of bits for removal purposes
-    # bin_data.insert(0, bin((len(bin_data)) * 8)[2:].zfill(8))
-    #
-    # # length of bits length number
-    # fill = len(bin_data[0])
-    # length = len(bin_data[0][2:].zfill(fill))
-    # bin_data.insert(0, bin(length)[2:].zfill(8))
+    # Qty of bits for removal purposes
+    bin_data.insert(0, bin((len(bin_data)) * 8)[2:].zfill(8))
+
+    # length of bits length number
+    fill = len(bin_data[0])
+    length = len(bin_data[0][2:].zfill(fill))
+    bin_data.insert(0, bin(length)[2:].zfill(8))
 
     # Insert dimensions
     bin_data.insert(0, height)
@@ -99,7 +99,6 @@ def retrieve_message(image):
 
         print(int(bit_length, 2))
 
-
         message_length = ""
         # Retrieve Message Length (Bits Qty)
         for x in range(8, 8 + int(bit_length, 2)):
@@ -142,7 +141,6 @@ def hide_image(secret, carrier):
         b.seek(0)
         carrier_data = [y for x in b.readlines()[3:] for y in x.replace("\n", "").split(" ") if y != ""]
 
-
     bin_secret_data = ascii_to_bin(secret_data)
     print('bits to be inserted ', len("".join(bin_secret_data)))
     print('bytes in carrier ', len(carrier_data))
@@ -178,34 +176,54 @@ def hide_image(secret, carrier):
 def retrieve_image(image):
 
     with open(image, 'r') as f:
-        header_bin = [bin(int(y))[2:].zfill(8) for x in f.readlines()[0:32] for y in x.replace("\n", "").split(" ") if y != ""]
+        header_bin = [bin(int(y))[2:].zfill(8) for x in f.readlines()[3:35] for y in x.replace("\n", "").split(" ") if y != ""]
         f.seek(0)
-        data_bin = [bin(int(y))[2:].zfill(8) for x in f.readlines()[32:] for y in x.replace("\n", "").split(" ") if y != ""]
+        data_bin = [bin(int(y))[2:].zfill(8) for x in f.readlines()[35:] for y in x.replace("\n", "").split(" ") if y != ""]
 
     # Extract header
     h = ''
     for x in header_bin:
         h += x[-1]
 
+    print(h)
     header = []
-    header.insert(int(h[0:8]), 2)
-    header.insert(int(h[8:]), 2)
+    header.insert(0, str(int(h[0:16], 2)) + '\n')
+    header.insert(0, str(int(h[16:], 2)) + " ")
+    header.insert(0, _magic_number + "\n")
+
+    len_bit = ''
+    for x in range(8):
+        len_bit += data_bin[x][-1]
+
+    qty = ''
+    for x in range(int(len_bit, 2), 16):
+        qty += data_bin[x][-1]
+
+    print(int(qty, 2))
 
     # Extract data
     data = []
     acc = ''
     ctr = 0
-    x = 0
-    while x < len(data_bin):
+    x = int(len_bit, 2) + len(qty)
+    y = x + int(qty, 2)
+    while x < y:
         if ctr < 8:
             acc += data_bin[x][-1]
             ctr += 1
+            x += 1
         else:
             ctr = 0
             data.append(acc)
+            acc = ''
     data.append(acc)
 
-    None
+    # bin to ascii
+    for x in range(len(data)):
+        data[x] = str(int(data[x], 2))
+
+    with open("ret_image.ppm", 'w') as f:
+        f.write("".join(header) + "\n".join(data))
 
 
 if __name__ == '__main__':
@@ -218,4 +236,5 @@ if __name__ == '__main__':
     #              "alkdjl;fkjaldfkjd", "castillo.ppm")
     # m = retrieve_message("stego_castillo.ppm")
     # print(m)
-    hide_image("castillo.ppm", "cotorra_boricua.ppm")
+    hide_image("test.ppm", "castillo.ppm")
+    retrieve_image("stego_castillo.ppm")
